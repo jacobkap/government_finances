@@ -132,4 +132,4 @@ finances <- finances %>% plyr::arrange(state, desc(year))
 oth_cols <- names(finances)[!names(finances) %in% c("state", "state_abb", "year")]
 finances <- finances[, c("state", "state_abb", "year", oth_cols)]
 setwd("..")
-write_csv(finances, "government_finances.csv")
+write_csv(finances, "government_finances_1992_2016.csv")
