@@ -16,9 +16,20 @@ for (file in xls_files) {
   # Gets the file year
   file_year <- get_year(file, years)
   
-  if (!file_year %in% 1992:1997) {
     message(file)
-    if (file_year == 1998) {
+    if (file_year <= 1997) {
+      temp <- data.frame(read_excel(file))
+      temp <- temp[, colSums(is.na(temp)) < nrow(temp)]
+      temp <- temp[, 1:2]
+      names(temp) <- c("item", "amount")
+      temp$state <- NA
+      temp$state[toupper(temp$item) %in% c(toupper(state.name), "UNITED STATES")] <- 
+        temp$item[toupper(temp$item) %in% c(toupper(state.name), "UNITED STATES")]
+      temp <- temp[grep(".", temp$state)[1]:nrow(temp), ]
+      temp$state <- zoo::na.locf(temp$state)
+      temp <- temp[temp$item != temp$state, ]
+      temp <- temp[, c(1, 3, 2)]
+    } else if (file_year == 1998) {
       temp <- data.frame(read_excel(file, sheet = 2))
       temp[3, 1] <- "item"
     } else if (file_year == 1999) {
@@ -35,35 +46,27 @@ for (file in xls_files) {
     temp[] <- sapply(temp, as.character)
     
     # Removes footnote
+    if (file_year > 1997) {
     temp <- temp[1:grep("cash and security holdings", temp[, 1],
                         ignore.case = TRUE)[1], ]
-    temp <- temp[-grep("by function", temp[, 1], ignore.case = TRUE), ]
+    temp <- temp[-grep("by function|popula", temp[, 1], ignore.case = TRUE), ]
+    } else {
+      temp <- temp[-grep("population|by function", temp$item, ignore.case = TRUE), ]
+    }
+
     
     # Adds type of budget
-    temp$budget_type <- NA
-    temp$budget_type[grepl("^total revenue|^total expen|^general exp|^debt|^cash",
-                           temp[,1], ignore.case = TRUE)] <-
-      temp[,1][grepl("^total revenue|^total expen|^general exp|^debt|^cash",
-                     temp[,1], ignore.case = TRUE)]
-    temp$budget_type[1:(grep(".", temp$budget_type)[1] - 1)] <- ""
-    temp$budget_type <- gsub(",.*", "", temp$budget_type)
-    temp$budget_type <- gsub("^debt.*", "Total debt", temp$budget_type, 
-                             ignore.case = TRUE)
-    #temp$budget_type <- gsub("general", "", temp$budget_type, 
-    #                         ignore.case = TRUE)
-    temp$budget_type <- gsub("expenditures", "expenditure", temp$budget_type, 
-                             ignore.case = TRUE)
-    temp$budget_type <- gsub("^cash.*", "Total cash", temp$budget_type,
-                             ignore.case = TRUE)
-    temp$budget_type <- zoo::na.locf(temp$budget_type)
-    temp[,1] <- paste(temp$budget_type, temp[,1])
-    temp$budget_type <- NULL
+    temp <- add_budget_type(temp)
     
     
     # Transpose columns and rows
+    if (file_year > 1997) {
     temp <- data.frame(t(temp), stringsAsFactors = FALSE)
     names(temp) <- unname(unlist(temp[1,]))
     temp <- temp[-1, ]
+    } else {
+      temp <- spread(temp, key = item, value = amount)
+    }
     rownames(temp) <- 1:nrow(temp)
     names(temp) <- gsub("General expenditure Direct expenditure",
                         "expenditure_direct_general_expenditure",
@@ -90,7 +93,7 @@ for (file in xls_files) {
     temp[num_cols] <- sapply(temp[num_cols], as.numeric)    
     final_xls <- bind_rows(final_xls, temp)
     
-  }
+  
 }
 
 final_csv <- data.frame()
@@ -123,7 +126,37 @@ table(names(final_xls) %in% names(final_csv))
 names(final_xls)[!names(final_xls) %in% names(final_csv)]
 names(final_csv)[!names(final_csv) %in% names(final_xls)]
 
+final_csv <- final_csv[, names(final_csv) %in% names(final_xls)]
 finances <- bind_rows(final_csv, final_xls)
 finances <- finances %>% plyr::arrange(state, desc(year))
 oth_cols <- names(finances)[!names(finances) %in% c("state", "state_abb", "year")]
 finances <- finances[, c("state", "state_abb", "year", oth_cols)]
+setwd("..")
+write_csv(finances, "government_finances.csv")
+
+temp <- data.frame(read_excel(file))
+temp <- temp[, 1:2]
+names(temp) <- c("item", "amount")
+temp$state <- NA
+temp$state[toupper(temp$item) %in% c(toupper(state.name), "UNITED STATES")] <- 
+  temp$item[toupper(temp$item) %in% c(toupper(state.name), "UNITED STATES")]
+temp <- temp[grep(".", temp$state)[1]:nrow(temp), ]
+temp$state <- zoo::na.locf(temp$state)
+temp <- temp[temp$item != temp$state, ]
+temp <- temp[!is.na(temp$item), ]
+temp <- temp[-grep("population|by function", temp$item, ignore.case = TRUE), ]
+temp <- add_budget_type(temp)
+temp <- spread(temp, key = item, value = amount)
+names(temp) <- gsub("General expenditure Direct expenditure",
+                    "expenditure_direct_general_expenditure",
+                    names(temp), ignore.case = TRUE)
+names(temp) <- gsub("General expenditure Intergovernmental expenditure",
+                    "expenditure_intergovernmental_general_expenditure",
+                    names(temp), ignore.case = TRUE)
+
+
+names(temp) <- fix_col_names(names(temp))
+table(duplicated(names(temp)))
+names(temp)[duplicated(names(temp))]
+names(temp)[!names(temp) %in% names(final_csv)]
+names(final_csv)[!names(final_csv) %in% names(temp)]

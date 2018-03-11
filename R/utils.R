@@ -67,6 +67,8 @@ fix_col_names <- function(cols) {
                     "^insurance_trust_expenditure" = "expenditure_insurance_trust",
                     "expenditure_insurance_trust_expenditure" = "expenditure_insurance_trust",
                     "^revenue_total_revenue$"               = "total_revenue",
+                    "^revenue_individual_income$"               = "revenue_individual_income_taxes",
+                    "^revenue_corporate_income$"               = "revenue_corporate_income_taxes",
                     "_$|^_"                                 = "")
   cols <- stringr::str_replace_all(cols, col_replace)
   cols <- stringr::str_replace_all(cols, col_replace2)
@@ -104,5 +106,28 @@ fix_states <- function(temp) {
   }
   temp$state_abb <- as.character(states$state.abb[match(temp$state,
                                                          states$state.name)])  
+  return(temp)
+}
+
+
+add_budget_type <- function(temp) {
+  temp$budget_type <- NA
+  temp$budget_type[grepl("^total revenue|^total expen|^general exp|^debt|^cash",
+                         temp[,1], ignore.case = TRUE)] <-
+    temp[,1][grepl("^total revenue|^total expen|^general exp|^debt|^cash",
+                   temp[,1], ignore.case = TRUE)]
+  if (grep(".", temp$budget_type)[1] != 1) {
+  temp$budget_type[1:(grep(".", temp$budget_type)[1] - 1)] <- ""
+  }
+  temp$budget_type <- gsub(",.*", "", temp$budget_type)
+  temp$budget_type <- gsub("^debt.*", "Total debt", temp$budget_type, 
+                           ignore.case = TRUE)
+  temp$budget_type <- gsub("expenditures", "expenditure", temp$budget_type, 
+                           ignore.case = TRUE)
+  temp$budget_type <- gsub("^cash.*", "Total cash", temp$budget_type,
+                           ignore.case = TRUE)
+  temp$budget_type <- zoo::na.locf(temp$budget_type)
+  temp[,1] <- paste(temp$budget_type, temp[,1])
+  temp$budget_type <- NULL
   return(temp)
 }
