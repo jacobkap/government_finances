@@ -8,16 +8,101 @@ years$smallyear[years$smallyear %in% 15:16] <- 2015:2016
 fix_col_names <- function(cols) {
   cols <- tolower(cols)
   cols <- trimws(cols)
-  cols <- gsub(" \\(1\\)", "", cols)
-  cols <- gsub("[[:punct:]]|\\s", "_", cols)
-  cols <- gsub("_+", "_", cols)
-  cols <- gsub("_$", "", cols)
-  cols <- gsub("population_thousands.*", "population_thousands", cols)
-  cols <- gsub("store_", "stores_", cols)
-  cols <- gsub("charge$*", "charges", cols)
-  cols <- gsub("expenditure_", "expenditures_", cols)
-  cols <- gsub("governmental", "government", cols)
-  cols <- gsub("x_thousands_of_dollars|item", "state", cols)
+
+  
+  col_replace <- c(" \\(1\\)"                               = "",
+                   "\\.\\.1\\."                             = "",
+                   "[[:punct:]]|\\s"                        = "_",
+                   "store_"                                 = "stores_",
+                   "charge$"                                = "charges",
+                   "expenditures_"                          = "expenditure_",
+                   "expenditure_general_expenditure_"       = "expenditure_",
+                   "insurance_trust_expenditure_"           = "expenditure_",
+                   "governmental"                           = "government",
+                   "item"                                   = "state",
+                   "x_thousands_of_dollars"                 = "state",
+                   "1"                                      = "",
+                   "by_function"                            = "",
+                   "total_revenue_general_revenue_"         = "revenue_",
+                   "general_expenditure_by_function_"       = "expenditue",
+                   "revenue_general_revenue_"               = "revenue",
+                   "revenue_revenue_taxes_"                 = "revenue_",
+                   "expenditure_general_expenditure_"       = "expenditure_",
+                   "revenue.*in.*revenue_"                  = "revenue_",
+                   "geographic_area_name"                   = "state",
+                   "expenditure_expenditure"                = "expenditure_",
+                   "revenue_general_revenue_"               = "revenue_",
+                   "secuirty"                               = "security",
+                   "_+"                                     = "_",
+                   "_$|^_"                                  = "",
+                   "corporation"                            = "corporate"
+                   ) 
+  
+  col_replace2 <- c("expenditure_total_expenditure_"        = "expenditure_",
+                    "expenditure_direct_expenditure_"       = "expenditure_",
+                    "expenditure_general_expenditure_"      = "expenditure_",
+                    "_net"                                  = "",
+                    "tax$"                                  = "taxes",
+                    "operation$"                            = "operations",
+                    ".*cash.*"                              = "cash_and_security_holdings",
+                    "^debt.*|^total_debt.*"                 = "debt_at_end_of_fiscal_year",
+                    "total_expenditure"                     = "expenditure",
+                    "all_other"                             = "other",
+                    "^revenue_taxes$"                       = "revenue_total_taxes",
+                    "general_expenditure_general_expenditure" = "total_general_expenditure",
+                    "^general_expenditure_"                 = "expenditure_",
+                    "^total_revenue"                        = "revenue",
+                    "^revenue_revenue$"                     = "total_revenue",
+                    "^expenditure_expenditure$"             = "total_expenditure",
+                    "^revenue_taxes$"                       = "revenue_total_taxes",
+                    "^expenditure_general_expenditure$"     = "total_general_expenditure",
+                    "_and_gross_receipts_taxes"             = "",
+                    "revenue_general_revenue_"              = "revenue_",
+                    "^utility_expenditure$"                 = "expenditure_utility_expenditure",
+                    "^revenue$"                             = "total_revenue",
+                    "^expenditure$"                         = "total_expenditure",
+                    "revenue_total_taxes_"                  = "revenue_",
+                    "^liquor_stores_expenditure"             = "expenditure_liquor_stores",
+                    "expenditure_liquor_stores_expenditure" = "expenditure_liquor_stores",
+                    "^insurance_trust_expenditure" = "expenditure_insurance_trust",
+                    "expenditure_insurance_trust_expenditure" = "expenditure_insurance_trust",
+                    "^revenue_total_revenue$"               = "total_revenue",
+                    "_$|^_"                                 = "")
+  cols <- stringr::str_replace_all(cols, col_replace)
+  cols <- stringr::str_replace_all(cols, col_replace2)
   
   return(cols)
+}
+
+get_year <- function(file, years) {
+  file_year <- substr(file, 1, 2)
+  if (file_year == "20") {
+    file_year <- as.numeric(substr(file, 1, 4))
+  } else if (file_year == "SG") {
+    file_year <- as.numeric(substr(file, 5, 8))
+  } else {
+    file_year <- years$year[years$smallyear == file_year]
+  }
+  return(file_year)
+}
+
+
+fix_states <- function(temp) {
+  # Changes state name to state abb.
+  temp$state <- gsub("\\.", " ", temp$state)
+  temp$state <- tolower(temp$state)
+  states <- data.frame(state.name, state.abb)
+  states <- rbind(states, data.frame(state.name = c("United States",
+                                                    "District of Columbia",
+                                                    "Pennsylvannia"),
+                                     state.abb  = c("US", "DC", "PA")))
+  states$state.name <- tolower(states$state.name)
+  if (any((grepl("^us$", temp$state, ignore.case = TRUE))))  {
+    temp$state <- toupper(temp$state)
+    temp$state <- states$state.name[match(temp$state, states$state.abb)]
+    temp$state <- as.character(temp$state)
+  }
+  temp$state_abb <- as.character(states$state.abb[match(temp$state,
+                                                         states$state.name)])  
+  return(temp)
 }
