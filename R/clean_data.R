@@ -40,7 +40,7 @@ for (file in xls_files) {
       temp <- data.frame(read_excel(file)) 
     }
     if (file_year %in% 2015:2016) temp <- rbind(names(temp), temp)
-    temp <- temp[grep("united|US", temp[,2], ignore.case = TRUE)[1]:nrow(temp), ]
+    temp <- temp[grep("united|US|alabama", temp[,2], ignore.case = TRUE)[1]:nrow(temp), ]
     temp <- temp[!is.na(temp[,1]), ]
     temp <- temp[, !is.na(temp[1, ])]
     temp[] <- sapply(temp, as.character)
@@ -51,7 +51,7 @@ for (file in xls_files) {
                         ignore.case = TRUE)[1], ]
     temp <- temp[-grep("by function|popula", temp[, 1], ignore.case = TRUE), ]
     } else {
-      temp <- temp[-grep("population|by function", temp$item, ignore.case = TRUE), ]
+      temp <- temp[-grep("population|by function|amounts", temp$item, ignore.case = TRUE), ]
     }
 
     
@@ -133,30 +133,3 @@ oth_cols <- names(finances)[!names(finances) %in% c("state", "state_abb", "year"
 finances <- finances[, c("state", "state_abb", "year", oth_cols)]
 setwd("..")
 write_csv(finances, "government_finances.csv")
-
-temp <- data.frame(read_excel(file))
-temp <- temp[, 1:2]
-names(temp) <- c("item", "amount")
-temp$state <- NA
-temp$state[toupper(temp$item) %in% c(toupper(state.name), "UNITED STATES")] <- 
-  temp$item[toupper(temp$item) %in% c(toupper(state.name), "UNITED STATES")]
-temp <- temp[grep(".", temp$state)[1]:nrow(temp), ]
-temp$state <- zoo::na.locf(temp$state)
-temp <- temp[temp$item != temp$state, ]
-temp <- temp[!is.na(temp$item), ]
-temp <- temp[-grep("population|by function", temp$item, ignore.case = TRUE), ]
-temp <- add_budget_type(temp)
-temp <- spread(temp, key = item, value = amount)
-names(temp) <- gsub("General expenditure Direct expenditure",
-                    "expenditure_direct_general_expenditure",
-                    names(temp), ignore.case = TRUE)
-names(temp) <- gsub("General expenditure Intergovernmental expenditure",
-                    "expenditure_intergovernmental_general_expenditure",
-                    names(temp), ignore.case = TRUE)
-
-
-names(temp) <- fix_col_names(names(temp))
-table(duplicated(names(temp)))
-names(temp)[duplicated(names(temp))]
-names(temp)[!names(temp) %in% names(final_csv)]
-names(final_csv)[!names(final_csv) %in% names(temp)]
