@@ -135,5 +135,14 @@ finances <- bind_rows(final_csv, final_xls)
 finances <- finances %>% plyr::arrange(state, desc(year))
 oth_cols <- names(finances)[!names(finances) %in% c("state", "state_abb", "year")]
 finances <- finances[, c("state", "state_abb", "year", oth_cols)]
+finances$state <- trimws(finances$state)
+table(finances$state)
+table(finances$state_abb)
+table(finances$year)
+
+
 setwd(here::here("data"))
-write_csv(finances, "government_finances_1992_2017.csv")
+government_finances_1992_2017 <- finances
+write_csv(government_finances_1992_2017, "government_finances_1992_2017.csv")
+write_dta(government_finances_1992_2017, path = "government_finances_1992_2017.dta")
+save(government_finances_1992_2017, file = "government_finances_1992_2017.rda")
