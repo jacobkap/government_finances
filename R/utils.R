@@ -1,8 +1,8 @@
-years <- data.frame(year = 1992:2016,
-                    smallyear = c(92:99, paste0(0, 0:9), 10:16),
+years <- data.frame(year = 1992:2017,
+                    smallyear = c(92:99, paste0(0, 0:9), 10:17),
                     stringsAsFactors = FALSE)
 years <- years[!years$year %in% 2012:2014, ] # Only avaiable on 
-years$smallyear[years$smallyear %in% 15:16] <- 2015:2016
+years$smallyear[years$smallyear %in% 15:17] <- 2015:2017
 
 
 fix_col_names <- function(cols) {

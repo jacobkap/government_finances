@@ -3,7 +3,11 @@ library(dplyr)
 library(stringr)
 library(zoo)
 library(tidyverse)
-setwd("data/raw")
+library(here)
+library(readxl)
+library(haven)
+setwd(here::here("data/raw"))
+
 
 
 files <- list.files(path = ".")
@@ -12,13 +16,13 @@ xls_files <- files[grepl("\\.xls", files)]
 
 final_xls <- data.frame()
 for (file in xls_files) {
-  source('C:/Users/user/Dropbox/R_project/government_finances/R/utils.R')
+  source(here::here("R/utils.R"))
   # Gets the file year
   file_year <- get_year(file, years)
   
     message(file)
     if (file_year <= 1997) {
-      temp <- data.frame(read_excel(file))
+      temp <- data.frame(readxl::read_excel(file))
       temp <- temp[, colSums(is.na(temp)) < nrow(temp)]
       temp <- temp[, 1:2]
       names(temp) <- c("item", "amount")
@@ -39,7 +43,7 @@ for (file in xls_files) {
     } else {
       temp <- data.frame(read_excel(file)) 
     }
-    if (file_year %in% 2015:2016) temp <- rbind(names(temp), temp)
+    if (file_year %in% 2015:2017) temp <- rbind(names(temp), temp)
     temp <- temp[grep("united|US|alabama", temp[,2], ignore.case = TRUE)[1]:nrow(temp), ]
     temp <- temp[!is.na(temp[,1]), ]
     temp <- temp[, !is.na(temp[1, ])]
@@ -131,5 +135,5 @@ finances <- bind_rows(final_csv, final_xls)
 finances <- finances %>% plyr::arrange(state, desc(year))
 oth_cols <- names(finances)[!names(finances) %in% c("state", "state_abb", "year")]
 finances <- finances[, c("state", "state_abb", "year", oth_cols)]
-setwd("..")
-write_csv(finances, "government_finances_1992_2016.csv")
+setwd(here::here("data"))
+write_csv(finances, "government_finances_1992_2017.csv")
