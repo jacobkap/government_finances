@@ -43,7 +43,7 @@ for (file in xls_files) {
     } else {
       temp <- data.frame(read_excel(file)) 
     }
-    if (file_year %in% 2015:2017) temp <- rbind(names(temp), temp)
+    if (file_year %in% 2015:2018) temp <- rbind(names(temp), temp)
     temp <- temp[grep("united|US|alabama", temp[,2], ignore.case = TRUE)[1]:nrow(temp), ]
     temp <- temp[!is.na(temp[,1]), ]
     temp <- temp[, !is.na(temp[1, ])]
@@ -139,10 +139,26 @@ finances$state <- trimws(finances$state)
 table(finances$state)
 table(finances$state_abb)
 table(finances$year)
+summary(finances)
 
+# Shortens names longer than 32 characters
+fix_long_names <- c(
+  "^revenue_miscellaneous_general_revenue$"           = "revenue_misc_general_revenue", 
+  "^expenditure_intergovernment_expenditure$"         = "expend_intergovernment_expend",
+  "^expenditure_insurance_benefits_and_repayments$"   = "expend_insurance_benefits_repay",
+  "^expenditure_assistance_and_subsidies$"            = "expend_assistance_and_subsidies", 
+  "^expenditure_exhibit_salaries_and_wages$"          = "expend_exhibit_salaries_wages",
+  "^expenditure_intergovernment_general_expenditure$" = "expend_intergov_general_expend",
+  "^expenditure_direct_general_expenditure$"          = "expend_direct_general_expend",
+  "^expenditure_government_administration$"           = "expend_government_administration",
+  "^expenditure_interest_on_general_debt$"            = "expend_interest_on_general_debt",
+  "^expenditure_other_and_unallocable$"               = "expend_other_and_unallocable"
+)
+names(finances) <- stringr::str_replace_all(names(finances), fix_long_names)
+table(nchar(names(finances)) > 32)
 
 setwd(here::here("data"))
-government_finances_1992_2017 <- finances
-write_csv(government_finances_1992_2017, "government_finances_1992_2017.csv")
-write_dta(government_finances_1992_2017, path = "government_finances_1992_2017.dta")
-save(government_finances_1992_2017, file = "government_finances_1992_2017.rda")
+government_finances_1992_2018 <- finances
+write_csv(government_finances_1992_2018, "government_finances_1992_2018.csv")
+write_dta(government_finances_1992_2018, path = "government_finances_1992_2018.dta")
+save(government_finances_1992_2018, file = "government_finances_1992_2018.rda")
